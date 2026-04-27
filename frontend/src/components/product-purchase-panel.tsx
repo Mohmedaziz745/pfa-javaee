@@ -14,9 +14,9 @@ export function ProductPurchasePanel({ product }: ProductPurchasePanelProps) {
   const router = useRouter();
   const [pending, setPending] = useState(false);
   const [quantity, setQuantity] = useState(1);
-  const [selectedVariantId, setSelectedVariantId] = useState(product.variants[0]?.id ?? null);
+  const [selectedVariantId, setSelectedVariantId] = useState<number | null>(product.variants[0]?.id ?? null);
   const promo = product.prixPromo !== null;
-  const savings = promo ? product.prix - product.prixPromo : 0;
+  const savings = product.prixPromo !== null ? product.prix - product.prixPromo : 0;
   const discountPercent = promo ? Math.round((savings / product.prix) * 100) : 0;
   const selectedVariant = useMemo(
     () => product.variants.find((variant) => variant.id === selectedVariantId) ?? null,
