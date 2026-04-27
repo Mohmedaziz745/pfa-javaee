@@ -1,8 +1,9 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { applyCoupon, checkout, fetchAddresses, fetchCart, removeCartItem, updateCartItem } from "@/lib/client-auth";
+import { CreditCardForm } from "@/components/credit-card-form";
 import { formatCurrency, formatDate } from "@/lib/format";
 import { Address, Cart } from "@/lib/types";
 
@@ -15,6 +16,8 @@ export function CartClient() {
   const [error, setError] = useState<string | null>(null);
   const [checkoutMessage, setCheckoutMessage] = useState<string | null>(null);
   const [pendingCheckout, setPendingCheckout] = useState(false);
+  const [cardValid, setCardValid] = useState(false);
+  const handleCardValidChange = useCallback((valid: boolean) => setCardValid(valid), []);
 
   useEffect(() => {
     Promise.all([fetchCart(), fetchAddresses()])
@@ -39,6 +42,10 @@ export function CartClient() {
   async function handleCheckout() {
     if (!selectedAddressId) {
       setError("Select a delivery address before checkout.");
+      return;
+    }
+    if (!cardValid) {
+      setError("Enter valid payment details before checkout.");
       return;
     }
 
@@ -149,11 +156,12 @@ export function CartClient() {
             <strong>{formatCurrency(cart.totalTtc)}</strong>
           </div>
         </div>
+        <CreditCardForm onValidChange={handleCardValidChange} />
         <button
           className="button"
           style={{ marginTop: 18, width: "100%" }}
           onClick={handleCheckout}
-          disabled={pendingCheckout || cart.lignes.length === 0 || addresses.length === 0}
+          disabled={pendingCheckout || cart.lignes.length === 0 || addresses.length === 0 || !cardValid}
         >
           {pendingCheckout ? "Placing order..." : "Buy products"}
         </button>
