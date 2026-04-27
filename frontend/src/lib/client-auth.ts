@@ -10,12 +10,20 @@ function inBrowser() {
   return typeof window !== "undefined";
 }
 
+let cachedAuthRaw: string | null = null;
+let cachedAuthSnapshot: AuthPayload | null = null;
+
 export function readAuth(): AuthPayload | null {
   if (!inBrowser()) {
     return null;
   }
   const raw = window.localStorage.getItem(AUTH_STORAGE_KEY);
-  return raw ? (JSON.parse(raw) as AuthPayload) : null;
+  if (raw === cachedAuthRaw) {
+    return cachedAuthSnapshot;
+  }
+  cachedAuthRaw = raw;
+  cachedAuthSnapshot = raw ? (JSON.parse(raw) as AuthPayload) : null;
+  return cachedAuthSnapshot;
 }
 
 export function writeAuth(payload: AuthPayload) {
