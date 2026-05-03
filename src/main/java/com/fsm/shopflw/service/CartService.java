@@ -69,7 +69,7 @@ public class CartService {
                     .build());
         }
         cart.setDateModification(LocalDateTime.now());
-        return toResponse(cart);
+        return toResponse(cartRepository.saveAndFlush(cart));
     }
 
     @Transactional

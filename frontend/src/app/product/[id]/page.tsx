@@ -59,16 +59,17 @@ export default async function ProductDetailPage({ params }: ProductDetailPagePro
       </section>
 
       <aside className="detail-sidebar">
-        <span className="badge">{product.categories.join(" • ")}</span>
+        <div className="chip-row">
+          <span className="badge">{product.categories.join(" / ")}</span>
+          {product.stock < 1 ? <span className="stock-pill danger">Out of stock</span> : null}
+        </div>
         <h1 style={{ marginTop: 14, fontSize: "clamp(2rem, 4vw, 3.6rem)" }}>{product.nom}</h1>
         <p className="muted" style={{ marginTop: 12 }}>
           {product.description}
         </p>
         <div className="price-row" style={{ marginTop: 18 }}>
           <span className="price">{formatCurrency(product.prixPromo ?? product.prix)}</span>
-          {product.prixPromo ? (
-            <span className="price-striked">{formatCurrency(product.prix)}</span>
-          ) : null}
+          {product.prixPromo ? <span className="price-striked">{formatCurrency(product.prix)}</span> : null}
         </div>
         <div className="field-group" style={{ marginTop: 20 }}>
           <div className="inline-row">

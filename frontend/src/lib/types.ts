@@ -57,6 +57,7 @@ export type CartItem = {
   productName: string;
   variantLabel: string | null;
   quantite: number;
+  stockAvailable?: number;
   prixUnitaire: number;
   totalLigne: number;
 };

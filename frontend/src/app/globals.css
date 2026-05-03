@@ -133,11 +133,14 @@ img {
 .nav-link {
   padding: 10px 14px;
   border-radius: 999px;
-  transition: background-color 180ms ease, transform 180ms ease;
+  transition: background-color 180ms ease, box-shadow 180ms ease, color 180ms ease, transform 180ms ease;
 }
 
-.nav-link:hover {
-  background: rgba(18, 38, 32, 0.06);
+.nav-link:hover,
+.nav-link.active {
+  color: var(--accent-deep);
+  background: rgba(255, 107, 53, 0.13);
+  box-shadow: 0 10px 24px rgba(255, 107, 53, 0.18);
   transform: translateY(-1px);
 }
 
@@ -335,8 +338,13 @@ img {
   display: flex;
   flex-direction: column;
   gap: 16px;
+  height: 100%;
   padding: 18px;
   border-radius: var(--radius-lg);
+}
+
+.card > a {
+  position: relative;
 }
 
 .card img {
@@ -353,6 +361,28 @@ img {
   align-items: center;
   justify-content: space-between;
   gap: 12px;
+}
+
+.card-body {
+  display: grid;
+  gap: 8px;
+}
+
+.card-body h3 {
+  min-height: 2.6em;
+  line-height: 1.3;
+}
+
+.card-body p {
+  display: -webkit-box;
+  min-height: 4.65em;
+  overflow: hidden;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 3;
+}
+
+.card-bottom {
+  margin-top: auto;
 }
 
 .price-row {
@@ -374,6 +404,47 @@ img {
 .card p {
   color: var(--muted);
   line-height: 1.55;
+}
+
+.card-error {
+  padding: 10px 12px;
+  border-radius: 14px;
+  color: #8d2032;
+  background: #ffd8df;
+  font-size: 0.9rem;
+  font-weight: 700;
+}
+
+.stock-ribbon {
+  position: absolute;
+  top: 14px;
+  left: 14px;
+  z-index: 1;
+  padding: 8px 12px;
+  border-radius: 999px;
+  color: white;
+  background: #c61f35;
+  font-size: 0.85rem;
+  font-weight: 800;
+  box-shadow: 0 10px 24px rgba(141, 32, 50, 0.28);
+}
+
+.stock-pill {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 8px 10px;
+  border-radius: 999px;
+  color: #1f5d27;
+  background: #dff2d2;
+  font-size: 0.85rem;
+  font-weight: 800;
+  white-space: nowrap;
+}
+
+.stock-pill.danger {
+  color: #8d2032;
+  background: #ffd8df;
 }
 
 .col-4 {
@@ -488,6 +559,33 @@ img {
   border-radius: 26px;
   background: rgba(255, 255, 255, 0.72);
   border: 1px solid rgba(18, 38, 32, 0.08);
+}
+
+.purchased-panel {
+  display: grid;
+  gap: 14px;
+  margin-top: 18px;
+  padding: 16px;
+  border-radius: 20px;
+  background: rgba(18, 38, 32, 0.05);
+  border: 1px solid rgba(18, 38, 32, 0.08);
+}
+
+.purchase-lines {
+  display: grid;
+  gap: 12px;
+}
+
+.purchase-line {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 12px;
+  align-items: start;
+}
+
+.purchase-line span {
+  font-weight: 700;
+  white-space: nowrap;
 }
 
 .purchase-heading,

@@ -91,6 +91,8 @@ public class MapperService {
 
     public CartItemResponse toCartItemResponse(CartItem item) {
         BigDecimal unitPrice = effectivePrice(item.getProduct(), item.getVariant());
+        int stockAvailable = item.getProduct().getStock()
+                + (item.getVariant() != null ? item.getVariant().getStockSupplementaire() : 0);
         return new CartItemResponse(
                 item.getId(),
                 item.getProduct().getId(),
@@ -98,6 +100,7 @@ public class MapperService {
                 item.getProduct().getNom(),
                 item.getVariant() != null ? item.getVariant().getAttribut() + ": " + item.getVariant().getValeur() : null,
                 item.getQuantite(),
+                stockAvailable,
                 unitPrice,
                 unitPrice.multiply(BigDecimal.valueOf(item.getQuantite()))
         );

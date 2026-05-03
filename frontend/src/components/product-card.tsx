@@ -15,9 +15,10 @@ type ProductCardProps = {
 export function ProductCard({ product }: ProductCardProps) {
   const router = useRouter();
   const [pending, setPending] = useState(false);
+  const [error, setError] = useState<string | null>(null);
   const promo = product.prixPromo !== null;
+  const outOfStock = product.stock < 1;
   const savings = promo && product.prixPromo !== null ? product.prix - product.prixPromo : 0;
-  const discountPercent = promo && product.prixPromo !== null ? Math.round((savings / product.prix) * 100) : 0;
 
   async function handleAddToCart() {
     const auth = readAuth();
@@ -27,11 +28,14 @@ export function ProductCard({ product }: ProductCardProps) {
     }
 
     setPending(true);
+    setError(null);
     try {
       await addToCart(product.id, product.variants[0]?.id ?? null);
       startTransition(() => {
         router.push("/cart");
       });
+    } catch (currentError) {
+      setError(currentError instanceof Error ? currentError.message : "Unable to add this product.");
     } finally {
       setPending(false);
     }
@@ -40,6 +44,7 @@ export function ProductCard({ product }: ProductCardProps) {
   return (
     <article className="card">
       <Link href={`/product/${product.id}`}>
+        {outOfStock ? <span className="stock-ribbon">Out of stock</span> : null}
         <img
           src={product.images[0] ?? `https://picsum.photos/seed/${product.id}/640/720`}
           alt={product.nom}
@@ -48,10 +53,12 @@ export function ProductCard({ product }: ProductCardProps) {
 
       <div className="card-top">
         <span className="badge">{product.categories[0] ?? "Featured"}</span>
-        <span className="small">{promo ? `-${discountPercent}%` : `${product.averageRating.toFixed(1)} / 5`}</span>
+        <span className={outOfStock ? "stock-pill danger" : "stock-pill"}>
+          {outOfStock ? "Stock 0" : `${product.stock} in stock`}
+        </span>
       </div>
 
-      <div>
+      <div className="card-body">
         <h3>{product.nom}</h3>
         <p>{product.description}</p>
       </div>
@@ -69,10 +76,11 @@ export function ProductCard({ product }: ProductCardProps) {
           <span className="small">{promo ? `${formatCurrency(savings)} off` : `${product.salesCount} sales`}</span>
         </div>
 
-        <button className="button" onClick={handleAddToCart} disabled={pending}>
-          {pending ? "Adding..." : "Add"}
+        <button className="button" onClick={handleAddToCart} disabled={pending || outOfStock}>
+          {pending ? "Adding..." : outOfStock ? "Unavailable" : "Add"}
         </button>
       </div>
+      {error ? <p className="card-error">{error}</p> : null}
     </article>
   );
 }

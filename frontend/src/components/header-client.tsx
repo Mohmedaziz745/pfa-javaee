@@ -1,12 +1,20 @@
 "use client";
 
 import Link from "next/link";
-import { useRouter } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import { useState, useSyncExternalStore } from "react";
 import { logout, readAuth, subscribeAuth } from "@/lib/client-auth";
 
+const navItems = [
+  { href: "/", label: "Home", exact: true },
+  { href: "/catalog", label: "Catalog" },
+  { href: "/cart", label: "Cart" },
+  { href: "/account", label: "Account" },
+];
+
 export function HeaderClient() {
   const router = useRouter();
+  const pathname = usePathname();
   const auth = useSyncExternalStore(subscribeAuth, readAuth, () => null);
   const [pendingLogout, setPendingLogout] = useState(false);
 
@@ -33,18 +41,20 @@ export function HeaderClient() {
         </Link>
 
         <nav className="nav-links">
-          <Link href="/" className="nav-link">
-            Home
-          </Link>
-          <Link href="/catalog" className="nav-link">
-            Catalog
-          </Link>
-          <Link href="/cart" className="nav-link">
-            Cart
-          </Link>
-          <Link href="/account" className="nav-link">
-            Account
-          </Link>
+          {navItems.map((item) => {
+            const isActive = item.exact ? pathname === item.href : pathname.startsWith(item.href);
+
+            return (
+              <Link
+                key={item.href}
+                href={item.href}
+                className={`nav-link${isActive ? " active" : ""}`}
+                aria-current={isActive ? "page" : undefined}
+              >
+                {item.label}
+              </Link>
+            );
+          })}
         </nav>
 
         <div className="header-actions">

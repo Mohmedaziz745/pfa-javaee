@@ -28,7 +28,7 @@ export default async function HomePage() {
             <div className="hero-stats">
               <div className="stat-tile">
                 <span className="small">Live API</span>
-                <strong>8081</strong>
+                <strong>6969</strong>
               </div>
               <div className="stat-tile">
                 <span className="small">Top picks</span>

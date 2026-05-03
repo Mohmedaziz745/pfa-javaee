@@ -8,6 +8,8 @@ import { RegisterPayload } from "@/lib/types";
 type AuthMode = "login" | "register";
 type AccountRole = "CUSTOMER" | "SELLER";
 
+const PASSWORD_RULE = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d).{8,}$/;
+
 const DEFAULTS = {
   login: {
     email: "customer@shopflow.local",
@@ -40,17 +42,29 @@ export function LoginForm() {
     setError(null);
     try {
       if (mode === "login") {
+        if (!email.trim() || !password) {
+          throw new Error("Enter your email and password.");
+        }
         await login(email, password);
       } else {
+        if (!registerData.email.trim() || !registerData.prenom.trim() || !registerData.nom.trim()) {
+          throw new Error("Fill in your name and email.");
+        }
+        if (!PASSWORD_RULE.test(registerData.motDePasse)) {
+          throw new Error("Password must be at least 8 characters with uppercase, lowercase, and a number.");
+        }
+        if (registerData.role === "SELLER" && !registerData.nomBoutique.trim()) {
+          throw new Error("Enter a shop name for seller accounts.");
+        }
         const payload: RegisterPayload = {
-          email: registerData.email,
+          email: registerData.email.trim(),
           motDePasse: registerData.motDePasse,
-          prenom: registerData.prenom,
-          nom: registerData.nom,
+          prenom: registerData.prenom.trim(),
+          nom: registerData.nom.trim(),
           role: registerData.role,
-          nomBoutique: registerData.role === "SELLER" ? registerData.nomBoutique : undefined,
-          descriptionBoutique: registerData.role === "SELLER" ? registerData.descriptionBoutique : undefined,
-          logoBoutique: registerData.role === "SELLER" ? registerData.logoBoutique : undefined,
+          nomBoutique: registerData.role === "SELLER" ? registerData.nomBoutique.trim() : undefined,
+          descriptionBoutique: registerData.role === "SELLER" ? registerData.descriptionBoutique.trim() : undefined,
+          logoBoutique: registerData.role === "SELLER" ? registerData.logoBoutique.trim() : undefined,
         };
         await register(payload);
       }
@@ -78,7 +92,7 @@ export function LoginForm() {
           type="button"
           onClick={() => setMode("login")}
         >
-          Login
+          Sign in
         </button>
         <button
           className={mode === "register" ? "button" : "ghost-button"}
@@ -112,6 +126,8 @@ export function LoginForm() {
                 <input
                   id="prenom"
                   className="field"
+                  required
+                  autoComplete="given-name"
                   value={registerData.prenom}
                   onChange={(event) => setRegisterData((current) => ({ ...current, prenom: event.target.value }))}
                 />
@@ -121,6 +137,8 @@ export function LoginForm() {
                 <input
                   id="nom"
                   className="field"
+                  required
+                  autoComplete="family-name"
                   value={registerData.nom}
                   onChange={(event) => setRegisterData((current) => ({ ...current, nom: event.target.value }))}
                 />
@@ -133,6 +151,8 @@ export function LoginForm() {
                 id="register-email"
                 className="field"
                 type="email"
+                required
+                autoComplete="email"
                 value={registerData.email}
                 onChange={(event) => setRegisterData((current) => ({ ...current, email: event.target.value }))}
               />
@@ -144,6 +164,9 @@ export function LoginForm() {
                 id="register-password"
                 className="field"
                 type="password"
+                required
+                minLength={8}
+                autoComplete="new-password"
                 value={registerData.motDePasse}
                 onChange={(event) => setRegisterData((current) => ({ ...current, motDePasse: event.target.value }))}
               />
@@ -172,6 +195,7 @@ export function LoginForm() {
                   <input
                     id="nomBoutique"
                     className="field"
+                    required
                     value={registerData.nomBoutique}
                     onChange={(event) => setRegisterData((current) => ({ ...current, nomBoutique: event.target.value }))}
                   />
@@ -208,6 +232,8 @@ export function LoginForm() {
                 id="email"
                 className="field"
                 type="email"
+                required
+                autoComplete="email"
                 value={email}
                 onChange={(event) => setEmail(event.target.value)}
               />
@@ -219,6 +245,8 @@ export function LoginForm() {
                 id="password"
                 className="field"
                 type="password"
+                required
+                autoComplete="current-password"
                 value={password}
                 onChange={(event) => setPassword(event.target.value)}
               />
@@ -229,7 +257,7 @@ export function LoginForm() {
         {error ? <p style={{ color: "#8d2032" }}>{error}</p> : null}
 
         <button className="button" type="submit" disabled={pending}>
-          {pending ? (mode === "login" ? "Signing in..." : "Creating account...") : mode === "login" ? "Login" : "Create account"}
+          {pending ? (mode === "login" ? "Signing in..." : "Creating account...") : mode === "login" ? "Sign in" : "Create account"}
         </button>
       </form>
     </div>

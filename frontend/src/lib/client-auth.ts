@@ -2,7 +2,7 @@
 
 import { Address, AuthPayload, Cart, Order, RegisterPayload } from "@/lib/types";
 
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL ?? "http://localhost:8081";
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL ?? "http://localhost:6969";
 const AUTH_STORAGE_KEY = "shopflow.auth";
 const AUTH_EVENT = "shopflow-auth-change";
 
@@ -98,10 +98,15 @@ async function authorizedFetch(path: string, init: RequestInit = {}) {
     headers.set("Content-Type", "application/json");
   }
 
-  let response = await fetch(`${API_BASE_URL}${path}`, {
-    ...init,
-    headers,
-  });
+  let response: Response;
+  try {
+    response = await fetch(`${API_BASE_URL}${path}`, {
+      ...init,
+      headers,
+    });
+  } catch {
+    throw new Error("Backend is not reachable. Start Spring Boot on port 6969.");
+  }
 
   if (response.status === 401) {
     const refreshed = await refreshAuthToken(auth);
@@ -114,28 +119,36 @@ async function authorizedFetch(path: string, init: RequestInit = {}) {
     if (!retryHeaders.has("Content-Type") && init.body) {
       retryHeaders.set("Content-Type", "application/json");
     }
-    response = await fetch(`${API_BASE_URL}${path}`, {
-      ...init,
-      headers: retryHeaders,
-    });
+    try {
+      response = await fetch(`${API_BASE_URL}${path}`, {
+        ...init,
+        headers: retryHeaders,
+      });
+    } catch {
+      throw new Error("Backend is not reachable. Start Spring Boot on port 6969.");
+    }
   }
 
   if (!response.ok) {
-    const fallback = await response.text();
-    throw new Error(fallback || "REQUEST_FAILED");
+    throw new Error(await parseError(response, "Request failed."));
   }
 
   return response;
 }
 
 export async function login(email: string, motDePasse: string): Promise<AuthPayload> {
-  const response = await fetch(`${API_BASE_URL}/api/auth/login`, {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify({ email, motDePasse }),
-  });
+  let response: Response;
+  try {
+    response = await fetch(`${API_BASE_URL}/api/auth/login`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({ email: email.trim().toLowerCase(), motDePasse }),
+    });
+  } catch {
+    throw new Error("Backend is not reachable. Start Spring Boot on port 6969.");
+  }
 
   if (!response.ok) {
     throw new Error(await parseError(response, "Email ou mot de passe invalide"));
@@ -147,13 +160,26 @@ export async function login(email: string, motDePasse: string): Promise<AuthPayl
 }
 
 export async function register(payload: RegisterPayload): Promise<AuthPayload> {
-  const response = await fetch(`${API_BASE_URL}/api/auth/register`, {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify(payload),
-  });
+  let response: Response;
+  try {
+    response = await fetch(`${API_BASE_URL}/api/auth/register`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        ...payload,
+        email: payload.email.trim().toLowerCase(),
+        prenom: payload.prenom.trim(),
+        nom: payload.nom.trim(),
+        nomBoutique: payload.nomBoutique?.trim() || undefined,
+        descriptionBoutique: payload.descriptionBoutique?.trim() || undefined,
+        logoBoutique: payload.logoBoutique?.trim() || undefined,
+      }),
+    });
+  } catch {
+    throw new Error("Backend is not reachable. Start Spring Boot on port 6969.");
+  }
 
   if (!response.ok) {
     throw new Error(await parseError(response, "Registration failed"));

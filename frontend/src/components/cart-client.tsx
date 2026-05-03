@@ -2,10 +2,10 @@
 
 import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useState } from "react";
-import { applyCoupon, checkout, fetchAddresses, fetchCart, removeCartItem, updateCartItem } from "@/lib/client-auth";
 import { CreditCardForm } from "@/components/credit-card-form";
+import { applyCoupon, checkout, fetchAddresses, fetchCart, removeCartItem, updateCartItem } from "@/lib/client-auth";
 import { formatCurrency, formatDate } from "@/lib/format";
-import { Address, Cart } from "@/lib/types";
+import { Address, Cart, Order } from "@/lib/types";
 
 export function CartClient() {
   const router = useRouter();
@@ -17,6 +17,8 @@ export function CartClient() {
   const [checkoutMessage, setCheckoutMessage] = useState<string | null>(null);
   const [pendingCheckout, setPendingCheckout] = useState(false);
   const [cardValid, setCardValid] = useState(false);
+  const [showPayment, setShowPayment] = useState(false);
+  const [lastOrder, setLastOrder] = useState<Order | null>(null);
   const handleCardValidChange = useCallback((valid: boolean) => setCardValid(valid), []);
 
   useEffect(() => {
@@ -55,8 +57,10 @@ export function CartClient() {
     try {
       const order = await checkout(selectedAddressId);
       setCart(await fetchCart());
+      setLastOrder(order);
+      setShowPayment(false);
+      setCardValid(false);
       setCheckoutMessage(`Order ${order.numeroCommande} created successfully.`);
-      router.push("/account");
       router.refresh();
     } catch (currentError) {
       setError(currentError instanceof Error ? currentError.message : "Checkout failed.");
@@ -79,37 +83,48 @@ export function CartClient() {
         {cart.lignes.length === 0 ? (
           <div className="empty-state">Your cart is empty right now.</div>
         ) : (
-          cart.lignes.map((item) => (
-            <article className="cart-item" key={item.itemId}>
-              <div className="inline-row">
-                <div>
-                  <h3>{item.productName}</h3>
-                  <p className="muted">{item.variantLabel ?? "Standard product"}</p>
+          cart.lignes.map((item) => {
+            const stockAvailable = item.stockAvailable ?? 0;
+
+            return (
+              <article className="cart-item" key={item.itemId}>
+                <div className="inline-row">
+                  <div>
+                    <h3>{item.productName}</h3>
+                    <p className="muted">{item.variantLabel ?? "Standard product"}</p>
+                  </div>
+                  <strong>{formatCurrency(item.totalLigne)}</strong>
                 </div>
-                <strong>{formatCurrency(item.totalLigne)}</strong>
-              </div>
-              <div className="inline-row" style={{ marginTop: 14 }}>
-                <div className="chip-row">
-                  <button
-                    className="ghost-button"
-                    onClick={async () => setCart(await updateCartItem(item.itemId, Math.max(1, item.quantite - 1)))}
-                  >
-                    -
-                  </button>
-                  <span className="chip">Qty {item.quantite}</span>
-                  <button
-                    className="ghost-button"
-                    onClick={async () => setCart(await updateCartItem(item.itemId, item.quantite + 1))}
-                  >
-                    +
+                <div className="inline-row" style={{ marginTop: 14 }}>
+                  <div className="chip-row">
+                    <button
+                      className="ghost-button"
+                      onClick={async () => setCart(await updateCartItem(item.itemId, Math.max(1, item.quantite - 1)))}
+                    >
+                      -
+                    </button>
+                    <span className="chip">Qty {item.quantite}</span>
+                    <button
+                      className="ghost-button"
+                      disabled={item.quantite >= stockAvailable}
+                      onClick={async () => setCart(await updateCartItem(item.itemId, item.quantite + 1))}
+                    >
+                      +
+                    </button>
+                  </div>
+                  <button className="ghost-button" onClick={async () => setCart(await removeCartItem(item.itemId))}>
+                    Remove
                   </button>
                 </div>
-                <button className="ghost-button" onClick={async () => setCart(await removeCartItem(item.itemId))}>
-                  Remove
-                </button>
-              </div>
-            </article>
-          ))
+                <div className="inline-row" style={{ marginTop: 14 }}>
+                  <span className={stockAvailable < 1 ? "stock-pill danger" : "stock-pill"}>
+                    {stockAvailable < 1 ? "Out of stock" : `${stockAvailable} in stock`}
+                  </span>
+                  {item.quantite >= stockAvailable ? <span className="small">Maximum quantity selected</span> : null}
+                </div>
+              </article>
+            );
+          })
         )}
       </div>
 
@@ -138,6 +153,33 @@ export function CartClient() {
           </select>
           {addresses.length === 0 ? <p className="small">No saved address found for this customer account.</p> : null}
         </div>
+        <div className="purchased-panel">
+          <div className="inline-row">
+            <p className="eyebrow">Your Products</p>
+            <span className="chip">{cart.lignes.length}</span>
+          </div>
+          {cart.lignes.length === 0 ? (
+            <p className="small">No products selected yet.</p>
+          ) : (
+            <div className="purchase-lines">
+              {cart.lignes.map((item) => {
+                const stockAvailable = item.stockAvailable ?? 0;
+
+                return (
+                  <div className="purchase-line" key={item.itemId}>
+                    <div>
+                      <strong>{item.productName}</strong>
+                      <p className="small">
+                        {item.variantLabel ?? "Standard product"} - Qty {item.quantite} - Stock {stockAvailable}
+                      </p>
+                    </div>
+                    <span>{formatCurrency(item.totalLigne)}</span>
+                  </div>
+                );
+              })}
+            </div>
+          )}
+        </div>
         <div className="field-group" style={{ marginTop: 18 }}>
           <div className="inline-row">
             <span>Subtotal</span>
@@ -156,15 +198,46 @@ export function CartClient() {
             <strong>{formatCurrency(cart.totalTtc)}</strong>
           </div>
         </div>
-        <CreditCardForm onValidChange={handleCardValidChange} />
-        <button
-          className="button"
-          style={{ marginTop: 18, width: "100%" }}
-          onClick={handleCheckout}
-          disabled={pendingCheckout || cart.lignes.length === 0 || addresses.length === 0 || !cardValid}
-        >
-          {pendingCheckout ? "Placing order..." : "Buy products"}
-        </button>
+        {lastOrder ? (
+          <div className="purchased-panel">
+            <p className="eyebrow">Purchased</p>
+            <h3>You bought these products</h3>
+            <div className="purchase-lines">
+              {lastOrder.lignes.map((item) => (
+                <div className="purchase-line" key={item.id}>
+                  <div>
+                    <strong>{item.productName}</strong>
+                    <p className="small">{item.variantLabel ?? "Standard product"} - Qty {item.quantite}</p>
+                  </div>
+                  <span>{formatCurrency(item.prixUnitaire * item.quantite)}</span>
+                </div>
+              ))}
+            </div>
+          </div>
+        ) : null}
+        {showPayment ? <CreditCardForm onValidChange={handleCardValidChange} /> : null}
+        {showPayment ? (
+          <button
+            className="button"
+            style={{ marginTop: 18, width: "100%" }}
+            onClick={handleCheckout}
+            disabled={pendingCheckout || cart.lignes.length === 0 || addresses.length === 0 || !cardValid}
+          >
+            {pendingCheckout ? "Placing order..." : "Buy products"}
+          </button>
+        ) : (
+          <button
+            className="button"
+            style={{ marginTop: 18, width: "100%" }}
+            onClick={() => {
+              setLastOrder(null);
+              setShowPayment(true);
+            }}
+            disabled={cart.lignes.length === 0 || addresses.length === 0}
+          >
+            Continue to payment
+          </button>
+        )}
         <p className="small" style={{ marginTop: 16 }}>
           Last update: {formatDate(cart.dateModification)}
         </p>

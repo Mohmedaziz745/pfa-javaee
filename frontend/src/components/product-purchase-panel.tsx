@@ -13,6 +13,7 @@ type ProductPurchasePanelProps = {
 export function ProductPurchasePanel({ product }: ProductPurchasePanelProps) {
   const router = useRouter();
   const [pending, setPending] = useState(false);
+  const [error, setError] = useState<string | null>(null);
   const [quantity, setQuantity] = useState(1);
   const [selectedVariantId, setSelectedVariantId] = useState<number | null>(product.variants[0]?.id ?? null);
   const promo = product.prixPromo !== null;
@@ -22,8 +23,12 @@ export function ProductPurchasePanel({ product }: ProductPurchasePanelProps) {
     () => product.variants.find((variant) => variant.id === selectedVariantId) ?? null,
     [product.variants, selectedVariantId],
   );
+  const availableStock = product.stock + (selectedVariant?.stockSupplementaire ?? 0);
+  const outOfStock = availableStock < 1;
+  const quantityOptions = Array.from({ length: Math.min(5, Math.max(availableStock, 1)) }, (_, index) => index + 1);
+  const selectedQuantity = Math.min(quantity, Math.max(availableStock, 1));
   const unitPrice = (product.prixPromo ?? product.prix) + (selectedVariant?.prixDelta ?? 0);
-  const totalPrice = unitPrice * quantity;
+  const totalPrice = unitPrice * selectedQuantity;
 
   async function handleAddToCart() {
     const auth = readAuth();
@@ -33,12 +38,15 @@ export function ProductPurchasePanel({ product }: ProductPurchasePanelProps) {
     }
 
     setPending(true);
+    setError(null);
     try {
-      await addToCart(product.id, selectedVariantId, quantity);
+      await addToCart(product.id, selectedVariantId, selectedQuantity);
       startTransition(() => {
         router.push("/cart");
         router.refresh();
       });
+    } catch (currentError) {
+      setError(currentError instanceof Error ? currentError.message : "Unable to add this product.");
     } finally {
       setPending(false);
     }
@@ -51,7 +59,13 @@ export function ProductPurchasePanel({ product }: ProductPurchasePanelProps) {
           <p className="eyebrow">Purchase Panel</p>
           <h2>Ready to order</h2>
         </div>
-        {promo ? <span className="sale-pill">-{discountPercent}%</span> : <span className="badge">New drop</span>}
+        {outOfStock ? (
+          <span className="stock-pill danger">Out of stock</span>
+        ) : promo ? (
+          <span className="sale-pill">-{discountPercent}%</span>
+        ) : (
+          <span className="badge">New drop</span>
+        )}
       </div>
 
       <div className="field-group" style={{ marginTop: 18 }}>
@@ -79,6 +93,10 @@ export function ProductPurchasePanel({ product }: ProductPurchasePanelProps) {
           <span>Customer reviews</span>
           <strong>{product.reviewCount}</strong>
         </div>
+        <div className="inline-row">
+          <span>Available stock</span>
+          <strong>{availableStock}</strong>
+        </div>
       </div>
 
       {product.variants.length > 0 ? (
@@ -105,10 +123,10 @@ export function ProductPurchasePanel({ product }: ProductPurchasePanelProps) {
         <select
           id="quantity"
           className="select"
-          value={quantity}
+          value={selectedQuantity}
           onChange={(event) => setQuantity(Number(event.target.value))}
         >
-          {[1, 2, 3, 4, 5].map((value) => (
+          {quantityOptions.map((value) => (
             <option key={value} value={value}>
               {value}
             </option>
@@ -121,12 +139,13 @@ export function ProductPurchasePanel({ product }: ProductPurchasePanelProps) {
         <strong>{formatCurrency(totalPrice)}</strong>
       </div>
 
-      <button className="button purchase-button" onClick={handleAddToCart} disabled={pending || product.stock < 1}>
-        {pending ? "Adding to cart..." : product.stock < 1 ? "Out of stock" : "Add to cart"}
+      <button className="button purchase-button" onClick={handleAddToCart} disabled={pending || outOfStock}>
+        {pending ? "Adding to cart..." : outOfStock ? "Out of stock" : "Add to cart"}
       </button>
+      {error ? <p className="card-error" style={{ marginTop: 14 }}>{error}</p> : null}
       <p className="muted" style={{ marginTop: 14 }}>
-        {product.stock > 0
-          ? `Available now with ${product.stock} unit${product.stock > 1 ? "s" : ""} in stock.`
+        {!outOfStock
+          ? `Available now with ${availableStock} unit${availableStock > 1 ? "s" : ""} in stock.`
           : "This item is currently unavailable."}
       </p>
     </section>

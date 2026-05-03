@@ -25,7 +25,7 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="fr" className={`${bodyFont.variable} ${displayFont.variable}`}>
+    <html lang="fr" data-scroll-behavior="smooth" className={`${bodyFont.variable} ${displayFont.variable}`}>
       <body>
         <div className="site-shell">
           <HeaderClient />
@@ -39,7 +39,7 @@ export default function RootLayout({
               <Link href="/">Accueil</Link>
               <Link href="/catalog">Catalogue</Link>
               <Link href="/cart">Panier</Link>
-              <a href="http://localhost:8081/swagger-ui" target="_blank" rel="noreferrer">
+              <a href="http://localhost:6969/swagger-ui" target="_blank" rel="noreferrer">
                 Swagger
               </a>
             </div>

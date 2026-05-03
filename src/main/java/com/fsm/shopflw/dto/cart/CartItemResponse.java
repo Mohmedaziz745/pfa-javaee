@@ -9,6 +9,7 @@ public record CartItemResponse(
         String productName,
         String variantLabel,
         Integer quantite,
+        Integer stockAvailable,
         BigDecimal prixUnitaire,
         BigDecimal totalLigne
 ) {
